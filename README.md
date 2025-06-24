@@ -30,7 +30,7 @@ Benefits:
 | Backend (Optional) | Python / Fastapi  |
 | Database         | SQLite        |
 | Authentication   | HTML Forms + JS + Backend validation |
-| Model Hosting    | HuggingFace / Local LLM |
+| Model Hosting    | HuggingFace/ ollama / Local LLM |
 
 ---
 
