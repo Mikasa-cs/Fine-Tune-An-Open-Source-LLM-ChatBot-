@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat History</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #6e8efb;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #6e8efb;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .chat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chat-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #ffebee;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-message {
+            background: #e3f2fd;
+            margin-left: 20px;
+        }
+
+        .bot-message {
+            background: #f5f5f5;
+            margin-right: 20px;
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 10px;
+            color: #666;
+        }
+
+        .back-btn {
+            text-decoration: none;
+            color: #6e8efb;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Chat History</h1>
+            <div class="actions">
+                <a href="index.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Chat
+                </a>
+                <button class="btn btn-danger" id="deleteAllBtn">
+                    <i class="fas fa-trash"></i>
+                    Delete All History
+                </button>
+            </div>
+        </div>
+
+        <div id="chatList" class="chat-list">
+            <!-- Chat history will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        const chatList = document.getElementById('chatList');
+        const deleteAllBtn = document.getElementById('deleteAllBtn');
+
+        // Function to format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        // Function to create a chat item element
+        function createChatItem(chat) {
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            chatItem.innerHTML = `
+                <div class="chat-header">
+                    <span class="timestamp">${formatTimestamp(chat.timestamp)}</span>
+                    <button class="delete-btn" data-id="${chat.id}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="message user-message">
+                    <strong>User:</strong> ${chat.user_input}
+                </div>
+                <div class="message bot-message">
+                    <strong>Bot:</strong> ${chat.chatbot_response}
+                </div>
+            `;
+            return chatItem;
+        }
+
+        // Function to load chat history
+        async function loadChatHistory() {
+            try {
+                const response = await fetch(`${API_URL}/chat-history`);
+                const data = await response.json();
+                
+                if (data.history.length === 0) {
+                    chatList.innerHTML = `
+                        <div class="no-history">
+                            <i class="fas fa-history" style="font-size: 48px; margin-bottom: 20px;"></i>
+                            <h2>No Chat History</h2>
+                            <p>Your chat history will appear here</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                chatList.innerHTML = '';
+                data.history.forEach(chat => {
+                    chatList.appendChild(createChatItem(chat));
+                });
+
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const chatId = e.currentTarget.dataset.id;
+                        if (confirm('Are you sure you want to delete this chat?')) {
+                            await deleteChat(chatId);
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                chatList.innerHTML = `
+                    <div class="no-history">
+                        <h2>Error Loading History</h2>
+                        <p>Please try again later</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Function to delete a single chat
+        async function deleteChat(chatId) {
+            try {
+                const response = await fetch(`${API_URL}/chat/${chatId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadChatHistory(); // Reload the history
+                } else {
+                    alert('Failed to delete chat');
+                }
+            } catch (error) {
+                console.error('Error deleting chat:', error);
+                alert('Error deleting chat');
+            }
+        }
+
+        // Function to delete all chat history
+        async function deleteAllHistory() {
+            if (confirm('Are you sure you want to delete all chat history? This action cannot be undone.')) {
+                try {
+                    const response = await fetch(`${API_URL}/chat-history`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        loadChatHistory(); // Reload the history
+                    } else {
+                        alert('Failed to delete all history');
+                    }
+                } catch (error) {
+                    console.error('Error deleting all history:', error);
+                    alert('Error deleting all history');
+                }
+            }
+        }
+
+        // Add event listener to delete all button
+        deleteAllBtn.addEventListener('click', deleteAllHistory);
+
+        // Load chat history when page loads
+        loadChatHistory();
+    </script>
+</body>
+</html> 
